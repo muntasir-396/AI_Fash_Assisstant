@@ -1,0 +1,41 @@
+# ==============================
+# CORE DEPENDENCIES
+# ==============================
+
+streamlit
+fastapi
+uvicorn
+
+# ==============================
+# ENV + CONFIG
+# ==============================
+
+python-dotenv
+
+# ==============================
+# LLM (Mistral)
+# ==============================
+
+mistralai
+
+# ==============================
+# VECTOR DB + EMBEDDINGS
+# ==============================
+
+chromadb
+sentence-transformers
+
+# ==============================
+# IMAGE PROCESSING
+# ==============================
+
+pillow
+ftfy
+regex
+git+https://github.com/openai/CLIP.git
+
+# ==============================
+# SEARCH TOOL (optional)
+# ==============================
+
+tavily-python

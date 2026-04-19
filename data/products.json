@@ -1,0 +1,42 @@
+[
+    {
+        "id": "p001",
+        "name": "Black Panjabi",
+        "category": "wedding",
+        "style": "traditional",
+        "color": "black",
+        "image": "data/images/p001.png"
+    },
+    {
+        "id": "p002",
+        "name": "White Panjabi",
+        "category": "wedding",
+        "style": "traditional",
+        "color": "white",
+        "image": "data/images/p002.png"
+    },
+    {
+        "id": "p003",
+        "name": "Blue Casual Shirt",
+        "category": "casual",
+        "style": "modern",
+        "color": "blue",
+        "image": "data/images/p003.png"
+    },
+    {
+        "id": "p005",
+        "name": "Maroon Casual t-Shirt",
+        "category": "casual",
+        "style": "modern",
+        "color": "Maroon",
+        "image": "data/images/p005.png"
+    },
+    {
+        "id": "p00",
+        "name": "Blue Casual Shirt",
+        "category": "casual",
+        "style": "modern",
+        "color": "blue",
+        "image": "data/images/p006.png"
+    }
+]
