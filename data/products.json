@@ -24,16 +24,24 @@
         "image": "data/images/p003.png"
     },
     {
+        "id": "p004",
+        "name": "White Formal Shirt",
+        "category": "formal",
+        "style": "modern",
+        "color": "white",
+        "image": "data/images/p004.png"
+    },
+    {
         "id": "p005",
         "name": "Maroon Casual t-Shirt",
         "category": "casual",
         "style": "modern",
-        "color": "Maroon",
+        "color": "maroon",
         "image": "data/images/p005.png"
     },
     {
-        "id": "p00",
-        "name": "Blue Casual Shirt",
+        "id": "p006",
+        "name": "Blue Denim Shirt",
         "category": "casual",
         "style": "modern",
         "color": "blue",

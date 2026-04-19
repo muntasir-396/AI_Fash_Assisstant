@@ -1,106 +1,102 @@
 # ==============================
-# MAIN PIPELINE CONTROLLER (CLEAN + FIXED)
+# MAIN PIPELINE CONTROLLER (THE BRAIN)
 # ==============================
 
 from core.runnable.flow import process_input
+from core.router.router import route_decision
 from services.recommendation.recommender import recommend_outfit
+from services.assistant.response_generator import generate_response
 from services.llm.model import ask_llm
 
-
-# ------------------------------
-# Generate human-like AI reply
-# ------------------------------
-def generate_reply(context, recommendations, chat_history=None):
-
-    # If no products → just give advice
-    if not recommendations:
-        prompt = f"""
-You are a friendly AI fashion stylist.
-
-User Context:
-{context}
-
-Give helpful fashion advice (no specific products).
-Keep it short and conversational.
-"""
-        return ask_llm(prompt, chat_history)
-
-    # If products exist → recommend them
-    product_text = "\n".join([
-        f"- {item['name']} ({item['style']}, {item['color']})"
-        for item in recommendations
-    ])
-
-    prompt = f"""
-You are a smart AI fashion assistant.
-
-User Context:
-{context}
-
-Available Products:
-{product_text}
-
-Rules:
-- ONLY suggest from the list
-- Speak naturally like a stylist
-- Mention product names clearly
-- Keep it short (3-4 lines)
-
-Example tone:
-"You’d look great in the Black Panjabi — it’s elegant and perfect for a wedding."
-
-Now respond:
-"""
-    return ask_llm(prompt, chat_history)
-
-
-# ------------------------------
-# MAIN PIPELINE FUNCTION
-# ------------------------------
 def run_pipeline(user_input: str, chat_history=None):
+    """
+    The main brain of the AI Stylist. 
+    Flow: Understand -> Route -> Specificity Check -> Retrieve -> Respond
+    """
 
     # ------------------------------
-    # Step 1: Process input
+    # Step 1: Process input & Extract Intent
     # ------------------------------
     processed = process_input(user_input)
-
     context = processed.get("context", {})
     user_info = processed.get("user_info", {})
-
-    action = context.get("action") or "advice"
-
-    # ------------------------------
-    # 🔥 FORCE RECOMMEND LOGIC (IMPORTANT)
-    # ------------------------------
-    text = user_input.lower()
-
-    if any(word in text for word in [
-        "suggest", "show", "recommend", "outfit", "wear", "panjabi", "shirt"
-    ]):
-        action = "recommend"
+    
+    # Store the raw input so the recommender can use it for CLIP embeddings
+    context["raw_input"] = user_input
 
     # ------------------------------
-    # Step 2: Recommendation logic
+    # Step 2: Route the Decision
+    # ------------------------------
+    # We ask the router what the user actually wants
+    action = route_decision(user_input)
+    
+    # Fallback to the NLP extracted action if the router is uncertain
+    if action == "unknown":
+        action = context.get("action", "advice")
+
+    # ------------------------------
+    # Step 3: Specificity Check (The Clarification Loop)
+    # ------------------------------
+    # Default to 5 (specific) if the LLM didn't return a score
+    specificity = context.get("specificity_score", 5)
+    occasion = context.get("occasion")
+    style = context.get("style")
+    
+    # Force clarification if the score is low OR if they didn't specify an occasion/style
+    # This prevents showing 100 random shirts when the user is too vague.
+    if action == "recommend":
+        if specificity < 4 or not occasion or not style:
+            action = "clarify"
+
+    # ------------------------------
+    # Step 4: Recommendation Logic
     # ------------------------------
     recommendations = []
 
     if action in ["recommend", "refine"]:
+        # Only trigger the heavy recommender engine if the user was specific enough
         recommendations = recommend_outfit(user_info, context)
 
     # ------------------------------
-    # Step 3: Generate reply
+    # Step 5: Generate Human-Like Reply
     # ------------------------------
-    assistant_reply = generate_reply(context, recommendations, chat_history)
+    if action == "clarify":
+        # Do NOT show products yet. Ask a friendly multiple-choice question to narrow it down.
+        prompt = f"""
+        User wants: {context.get('color_preference', 'something')} {context.get('category', 'clothes')}.
+        This is too broad for a professional stylist. 
+        
+        Ask ONE friendly, professional multiple-choice question to narrow down the occasion or style.
+        Example: "A white shirt is a classic! Are you looking for something formal for the office, or casual for the weekend?"
+        """
+        assistant_reply = ask_llm(prompt, chat_history)
+
+    elif not recommendations:
+        # Give helpful fashion advice when no specific products are requested or found
+        prompt = f"""
+        You are Tooly, a friendly and premium AI fashion stylist.
+        User Context: {context}
+        User Input: "{user_input}"
+        
+        Give helpful fashion advice. Do NOT list specific products.
+        Keep it short, professional, and conversational. Ask a follow-up question to guide them.
+        """
+        assistant_reply = ask_llm(prompt, chat_history)
+        
+    else:
+        # Use the dedicated response generator for product recommendations
+        assistant_reply = generate_response(context, recommendations)
 
     # ------------------------------
-    # DEBUG (optional but useful)
+    # DEBUG LOGS (Terminal)
     # ------------------------------
-    print("ACTION:", action)
-    print("CONTEXT:", context)
-    print("RECOMMENDATIONS:", len(recommendations))
+    print(f"🧠 INTENT ACTION: {action}")
+    print(f"🎯 SPECIFICITY: {specificity}")
+    print(f"📊 CONTEXT: {context}")
+    print(f"👕 PRODUCTS FOUND: {len(recommendations)}")
 
     # ------------------------------
-    # Step 4: Return
+    # Step 6: Return Payload to UI
     # ------------------------------
     return {
         "input": user_input,
